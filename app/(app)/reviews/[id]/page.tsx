@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { AnalysisResults } from "@/components/review/analysis-results";
 import { AnalysisStatus } from "@/components/review/analysis-status";
 import { AnalyzeButton } from "@/components/review/analyze-button";
 import { CreatedToast } from "@/components/review/created-toast";
+import { FindingsReview } from "@/components/review/findings-review";
 import { ExtractButton } from "@/components/review/extract-button";
 import { FileInventory } from "@/components/review/file-inventory";
 import { Badge } from "@/components/ui/badge";
@@ -136,7 +136,11 @@ export default async function ReviewDetailPage({
       {isAnalyzing ? <AnalysisStatus /> : null}
 
       {isAnalyzed ? (
-        <AnalysisResults review={review} findings={review.findings} />
+        <FindingsReview
+          review={review}
+          findings={review.findings}
+          locked={review.signedOffAt !== null}
+        />
       ) : null}
 
       {hasInventory ? <FileInventory files={review.examinedFiles} /> : null}

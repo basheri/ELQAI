@@ -9,6 +9,8 @@ const revalidatePathMock = vi.fn();
 const getCurrentUserMock = vi.fn();
 const reviewCreateMock = vi.fn();
 const reviewDeleteMock = vi.fn();
+const reviewFindFirstMock = vi.fn();
+const reviewUpdateMock = vi.fn();
 const uploadMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
@@ -25,6 +27,8 @@ vi.mock("@/lib/db", () => ({
     review: {
       create: (args: unknown) => reviewCreateMock(args),
       delete: (args: unknown) => reviewDeleteMock(args),
+      findFirst: (args: unknown) => reviewFindFirstMock(args),
+      update: (args: unknown) => reviewUpdateMock(args),
     },
   },
 }));
@@ -36,7 +40,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
-import { createReview } from "@/actions/reviews";
+import { createReview, updateReviewDecision } from "@/actions/reviews";
 
 function zipFile(name = "export.zip"): File {
   return new File([new Uint8Array([80, 75, 3, 4])], name, {
@@ -134,5 +138,43 @@ describe("createReview", () => {
     expect(reviewCreateMock).toHaveBeenCalledOnce();
     expect(reviewDeleteMock).toHaveBeenCalledWith({ where: { id: "rev_1" } });
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateReviewDecision", () => {
+  beforeEach(() => {
+    reviewFindFirstMock.mockResolvedValue({ id: "rev_1", signedOffAt: null });
+    reviewUpdateMock.mockResolvedValue({});
+  });
+
+  it("saves the reviewer's verdict and safety status", async () => {
+    const result = await updateReviewDecision({
+      reviewId: "rev_1",
+      verdict: "NEEDS_SUBSTANTIAL_REVISION",
+      safetyStatus: "FLAGGED",
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(reviewUpdateMock).toHaveBeenCalledWith({
+      where: { id: "rev_1" },
+      data: { verdict: "NEEDS_SUBSTANTIAL_REVISION", safetyStatus: "FLAGGED" },
+    });
+    expect(revalidatePathMock).toHaveBeenCalledWith("/reviews/rev_1");
+  });
+
+  it("refuses to change the verdict of a signed-off review", async () => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      signedOffAt: new Date("2026-01-01"),
+    });
+
+    const result = await updateReviewDecision({
+      reviewId: "rev_1",
+      verdict: "READY",
+      safetyStatus: "CLEAR",
+    });
+
+    expect(result.error).toBeTruthy();
+    expect(reviewUpdateMock).not.toHaveBeenCalled();
   });
 });

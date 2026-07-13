@@ -179,3 +179,64 @@ export async function extractReview(
   revalidatePath(`/reviews/${reviewId}`);
   return { total: classified.length };
 }
+
+export interface UpdateDecisionState {
+  error?: string;
+}
+
+// WHY: the reviewer's adjustment of the proposed final verdict + safety status
+// (Step 8). This writes Review.verdict — the human's version — but export stays
+// blocked until sign-off (signedOffAt), so governance rule #1 still holds.
+const UpdateDecisionSchema = z.object({
+  reviewId: z.string().min(1),
+  verdict: z.enum([
+    "READY",
+    "READY_LIMITED_FIXES",
+    "NEEDS_SUBSTANTIAL_REVISION",
+    "NOT_READY",
+    "INCOMPLETE_EVIDENCE",
+  ]),
+  safetyStatus: z.enum(["CLEAR", "FLAGGED", "FAILED"]),
+});
+
+export type UpdateDecisionInput = z.infer<typeof UpdateDecisionSchema>;
+
+export async function updateReviewDecision(
+  input: UpdateDecisionInput,
+): Promise<UpdateDecisionState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "انتهت الجلسة، يرجى تسجيل الدخول من جديد." };
+  }
+
+  const parsed = UpdateDecisionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "بيانات غير صحيحة." };
+  }
+
+  const review = await db.review.findFirst({
+    where: { id: parsed.data.reviewId, orgId: user.orgId },
+    select: { id: true, signedOffAt: true },
+  });
+  if (!review) {
+    return { error: "المراجعة غير موجودة." };
+  }
+  if (review.signedOffAt) {
+    return { error: "تم اعتماد المراجعة ولا يمكن تعديل الحكم." };
+  }
+
+  try {
+    await db.review.update({
+      where: { id: review.id },
+      data: {
+        verdict: parsed.data.verdict,
+        safetyStatus: parsed.data.safetyStatus,
+      },
+    });
+  } catch {
+    return { error: "تعذّر حفظ الحكم، يرجى المحاولة لاحقاً." };
+  }
+
+  revalidatePath(`/reviews/${review.id}`);
+  return {};
+}
