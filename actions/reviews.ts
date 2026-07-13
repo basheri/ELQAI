@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { parseBlackboardExport } from "@/lib/blackboard-parser";
 import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import {
@@ -108,4 +109,73 @@ export async function createReview(
   // WHY: redirect() throws NEXT_REDIRECT, so it must run outside the try/catch
   // blocks above. `created=1` lets the detail page fire a success toast.
   redirect(`/reviews/${reviewId}?created=1`);
+}
+
+export interface ExtractReviewState {
+  error?: string;
+  total?: number;
+}
+
+// WHY: unzip the stored export, classify its content files, and persist the
+// inventory (ExaminedFile rows) — moving the review to EXTRACTED. Re-runnable
+// while still UPLOADED/EXTRACTED (it replaces the previous inventory).
+export async function extractReview(
+  reviewId: string,
+): Promise<ExtractReviewState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "انتهت الجلسة، يرجى تسجيل الدخول من جديد." };
+  }
+
+  const review = await db.review.findFirst({
+    where: { id: reviewId, orgId: user.orgId },
+    select: { id: true, status: true },
+  });
+  if (!review) {
+    return { error: "المراجعة غير موجودة." };
+  }
+  if (review.status !== "UPLOADED" && review.status !== "EXTRACTED") {
+    return { error: "لا يمكن استخراج الملفات في الحالة الحالية للمراجعة." };
+  }
+
+  let classified;
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.storage
+      .from(COURSE_EXPORTS_BUCKET)
+      .download(exportStoragePath(user.orgId, reviewId));
+    if (error || !data) {
+      throw error ?? new Error("empty download");
+    }
+    const buffer = Buffer.from(await data.arrayBuffer());
+    classified = await parseBlackboardExport(buffer);
+  } catch {
+    return { error: "تعذّر فتح حزمة المقرر أو قراءة محتواها." };
+  }
+
+  try {
+    // WHY: replace-then-insert in one transaction so a re-run never leaves a
+    // half-updated inventory, and the status flips only if the writes succeed.
+    await db.$transaction([
+      db.examinedFile.deleteMany({ where: { reviewId } }),
+      db.examinedFile.createMany({
+        data: classified.map((file) => ({
+          reviewId,
+          fileName: file.fileName,
+          fileType: file.fileType,
+          examinable: file.examinable,
+          reason: file.reason,
+        })),
+      }),
+      db.review.update({
+        where: { id: reviewId },
+        data: { status: "EXTRACTED" },
+      }),
+    ]);
+  } catch {
+    return { error: "تعذّر حفظ نتائج الاستخراج." };
+  }
+
+  revalidatePath(`/reviews/${reviewId}`);
+  return { total: classified.length };
 }
