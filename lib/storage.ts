@@ -16,3 +16,14 @@ export function exportStoragePath(orgId: string, reviewId: string): string {
 export const MAX_EXPORT_BYTES = 200 * 1024 * 1024; // 200 MB
 
 export const ACCEPTED_EXPORT_EXTENSIONS = [".zip"] as const;
+
+export const REPORT_EXPORTS_BUCKET = "report-exports";
+
+export function reportStoragePath(
+  orgId: string,
+  reviewId: string,
+  exportId: string,
+  format: "pdf" | "docx",
+): string {
+  return `${orgId}/${reviewId}/${exportId}.${format}`;
+}

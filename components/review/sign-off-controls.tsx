@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { exportReport } from "@/actions/exports";
 import { signOffReview } from "@/actions/reviews";
 import { formatDateAr, VERDICT_LABELS_AR } from "@/lib/review-display";
 
@@ -46,6 +47,24 @@ export function SignOffControls({ review }: { review: Review }) {
         return;
       }
       toast.success("تم اعتماد المراجعة بنجاح.");
+    });
+  }
+
+  function handleExport(format: "pdf" | "docx") {
+    startTransition(async () => {
+      const result = await exportReport(review.id, format);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.downloadUrl) {
+        window.open(result.downloadUrl, "_blank");
+        toast.success(
+          format === "pdf"
+            ? "تم إنشاء تقرير PDF بنجاح."
+            : "تم إنشاء تقرير Word بنجاح.",
+        );
+      }
     });
   }
 
@@ -110,12 +129,28 @@ export function SignOffControls({ review }: { review: Review }) {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" disabled={!isSignedOff}>
-            <FileText className="size-4" />
+          <Button
+            variant="outline"
+            disabled={!isSignedOff || pending}
+            onClick={() => handleExport("pdf")}
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileText className="size-4" />
+            )}
             تصدير PDF
           </Button>
-          <Button variant="outline" disabled={!isSignedOff}>
-            <FileText className="size-4" />
+          <Button
+            variant="outline"
+            disabled={!isSignedOff || pending}
+            onClick={() => handleExport("docx")}
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileText className="size-4" />
+            )}
             تصدير Word
           </Button>
         </div>
