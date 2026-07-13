@@ -40,7 +40,11 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
-import { createReview, updateReviewDecision } from "@/actions/reviews";
+import {
+  createReview,
+  signOffReview,
+  updateReviewDecision,
+} from "@/actions/reviews";
 
 function zipFile(name = "export.zip"): File {
   return new File([new Uint8Array([80, 75, 3, 4])], name, {
@@ -173,6 +177,95 @@ describe("updateReviewDecision", () => {
       verdict: "READY",
       safetyStatus: "CLEAR",
     });
+
+    expect(result.error).toBeTruthy();
+    expect(reviewUpdateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("signOffReview", () => {
+  beforeEach(() => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      status: "ANALYZED",
+      verdict: "READY",
+      safetyStatus: "CLEAR",
+      signedOffAt: null,
+    });
+    reviewUpdateMock.mockResolvedValue({});
+  });
+
+  it("sets signedOffAt, reviewedById, and status SIGNED_OFF", async () => {
+    const result = await signOffReview("rev_1");
+
+    expect(result.error).toBeUndefined();
+    expect(reviewUpdateMock).toHaveBeenCalledOnce();
+    const updateArg = reviewUpdateMock.mock.calls[0][0] as {
+      where: { id: string };
+      data: { signedOffAt: Date; reviewedById: string; status: string };
+    };
+    expect(updateArg.where.id).toBe("rev_1");
+    expect(updateArg.data.signedOffAt).toBeInstanceOf(Date);
+    expect(updateArg.data.reviewedById).toBe("user_1");
+    expect(updateArg.data.status).toBe("SIGNED_OFF");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/reviews/rev_1");
+  });
+
+  it("rejects sign-off when verdict is not set", async () => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      status: "ANALYZED",
+      verdict: null,
+      safetyStatus: "CLEAR",
+      signedOffAt: null,
+    });
+
+    const result = await signOffReview("rev_1");
+
+    expect(result.error).toBeTruthy();
+    expect(reviewUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects sign-off when safetyStatus is not set", async () => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      status: "ANALYZED",
+      verdict: "READY",
+      safetyStatus: null,
+      signedOffAt: null,
+    });
+
+    const result = await signOffReview("rev_1");
+
+    expect(result.error).toBeTruthy();
+    expect(reviewUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects sign-off when review is not ANALYZED", async () => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      status: "EXTRACTED",
+      verdict: "READY",
+      safetyStatus: "CLEAR",
+      signedOffAt: null,
+    });
+
+    const result = await signOffReview("rev_1");
+
+    expect(result.error).toBeTruthy();
+    expect(reviewUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects sign-off when already signed off", async () => {
+    reviewFindFirstMock.mockResolvedValue({
+      id: "rev_1",
+      status: "ANALYZED",
+      verdict: "READY",
+      safetyStatus: "CLEAR",
+      signedOffAt: new Date("2026-01-01"),
+    });
+
+    const result = await signOffReview("rev_1");
 
     expect(result.error).toBeTruthy();
     expect(reviewUpdateMock).not.toHaveBeenCalled();

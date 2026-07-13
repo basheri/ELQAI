@@ -240,3 +240,61 @@ export async function updateReviewDecision(
   revalidatePath(`/reviews/${review.id}`);
   return {};
 }
+
+export interface SignOffState {
+  error?: string;
+}
+
+const SignOffSchema = z.object({
+  reviewId: z.string().min(1),
+});
+
+// WHY: governance rule #1 — the human sign-off gate. Sets signedOffAt +
+// reviewedById and transitions to SIGNED_OFF, locking all further edits.
+// Export controls (Step 10) remain disabled until this runs.
+export async function signOffReview(
+  reviewId: string,
+): Promise<SignOffState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "انتهت الجلسة، يرجى تسجيل الدخول من جديد." };
+  }
+
+  const parsed = SignOffSchema.safeParse({ reviewId });
+  if (!parsed.success) {
+    return { error: "معرّف المراجعة غير صالح." };
+  }
+
+  const review = await db.review.findFirst({
+    where: { id: parsed.data.reviewId, orgId: user.orgId },
+    select: { id: true, status: true, verdict: true, safetyStatus: true, signedOffAt: true },
+  });
+  if (!review) {
+    return { error: "المراجعة غير موجودة." };
+  }
+  if (review.signedOffAt) {
+    return { error: "تم اعتماد المراجعة مسبقاً." };
+  }
+  if (review.status !== "ANALYZED") {
+    return { error: "لا يمكن اعتماد المراجعة قبل اكتمال التحليل." };
+  }
+  if (!review.verdict || !review.safetyStatus) {
+    return { error: "يجب تحديد الحكم النهائي وحالة السلامة قبل الاعتماد." };
+  }
+
+  try {
+    await db.review.update({
+      where: { id: review.id },
+      data: {
+        signedOffAt: new Date(),
+        reviewedById: user.id,
+        status: "SIGNED_OFF",
+      },
+    });
+  } catch {
+    return { error: "تعذّر اعتماد المراجعة، يرجى المحاولة لاحقاً." };
+  }
+
+  revalidatePath(`/reviews/${review.id}`);
+  return {};
+}

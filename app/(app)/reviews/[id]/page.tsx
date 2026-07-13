@@ -7,6 +7,7 @@ import { CreatedToast } from "@/components/review/created-toast";
 import { FindingsReview } from "@/components/review/findings-review";
 import { ExtractButton } from "@/components/review/extract-button";
 import { FileInventory } from "@/components/review/file-inventory";
+import { SignOffControls } from "@/components/review/sign-off-controls";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -136,11 +137,14 @@ export default async function ReviewDetailPage({
       {isAnalyzing ? <AnalysisStatus /> : null}
 
       {isAnalyzed ? (
-        <FindingsReview
-          review={review}
-          findings={review.findings}
-          locked={review.signedOffAt !== null}
-        />
+        <>
+          <FindingsReview
+            review={review}
+            findings={review.findings}
+            locked={review.signedOffAt !== null}
+          />
+          <SignOffControls review={review} />
+        </>
       ) : null}
 
       {hasInventory ? <FileInventory files={review.examinedFiles} /> : null}
