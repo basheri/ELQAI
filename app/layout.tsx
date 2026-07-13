@@ -2,6 +2,8 @@ import localFont from "next/font/local";
 
 import "./globals.css";
 
+import { Toaster } from "@/components/ui/sonner";
+
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -29,6 +31,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" className={cairo.variable}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         {children}
+        <Toaster />
       </body>
     </html>
   );
