@@ -1,0 +1,36 @@
+[
+  { "framework": "QM", "code": "QM-1.1", "titleAr": "", "titleEn": "", "weight": 3, "descAr": "" },
+  { "framework": "QM", "code": "QM-2.1", "titleAr": "", "titleEn": "", "weight": 3, "descAr": "" },
+  { "framework": "QM", "code": "QM-3.1", "titleAr": "", "titleEn": "", "weight": 3, "descAr": "" },
+  { "framework": "QM", "code": "QM-4.1", "titleAr": "", "titleEn": "", "weight": 2, "descAr": "" },
+  { "framework": "QM", "code": "QM-5.1", "titleAr": "", "titleEn": "", "weight": 2, "descAr": "" },
+  { "framework": "QM", "code": "QM-6.1", "titleAr": "", "titleEn": "", "weight": 2, "descAr": "" },
+  { "framework": "QM", "code": "QM-7.1", "titleAr": "", "titleEn": "", "weight": 1, "descAr": "" },
+  { "framework": "QM", "code": "QM-8.1", "titleAr": "", "titleEn": "", "weight": 2, "descAr": "" },
+
+  { "framework": "NELC", "code": "NELC-DES-1", "titleAr": "بنية المقرر وتنظيمه", "titleEn": "Course structure & organization", "weight": 2, "descAr": "المقرر منظم في وحدات/أسابيع واضحة مع مسار تعلم متسلسل ومفهوم." },
+  { "framework": "NELC", "code": "NELC-OUT-1", "titleAr": "وضوح مخرجات التعلم", "titleEn": "Clear learning outcomes", "weight": 3, "descAr": "مخرجات تعلم قابلة للقياس ومعلنة على مستوى المقرر والوحدات." },
+  { "framework": "NELC", "code": "NELC-ALN-1", "titleAr": "المواءمة بين المخرجات والمحتوى والتقييم", "titleEn": "Outcome–content–assessment alignment", "weight": 3, "descAr": "الأنشطة والتقييمات والمحتوى تخدم مخرجات التعلم المعلنة." },
+  { "framework": "NELC", "code": "NELC-ASM-1", "titleAr": "التقييم وأدواته", "titleEn": "Assessment design", "weight": 2, "descAr": "أساليب تقييم متنوعة وعادلة مع معايير تصحيح واضحة." },
+  { "framework": "NELC", "code": "NELC-INT-1", "titleAr": "التفاعل والمشاركة", "titleEn": "Interaction & engagement", "weight": 2, "descAr": "فرص تفاعل بين المتعلم والمحتوى والأقران والمعلم." },
+  { "framework": "NELC", "code": "NELC-SUP-1", "titleAr": "إرشاد المتعلم ودعمه", "titleEn": "Learner guidance & support", "weight": 2, "descAr": "توجيهات بدء واضحة ومعلومات دعم وطرق تواصل متاحة." },
+  { "framework": "NELC", "code": "NELC-TEC-1", "titleAr": "الجاهزية التقنية على المنصة", "titleEn": "Technical readiness in the LMS", "weight": 1, "descAr": "الروابط والوسائط والملفات تعمل بلا أعطال داخل نظام إدارة التعلم." },
+
+  { "framework": "CONTENT", "code": "CNT-1", "titleAr": "دقة المحتوى وحداثته", "titleEn": "Content accuracy & currency", "weight": 3, "descAr": "المعلومات صحيحة ومحدثة وخالية من الأخطاء العلمية." },
+  { "framework": "CONTENT", "code": "CNT-2", "titleAr": "الوضوح والتنظيم", "titleEn": "Clarity & structure", "weight": 2, "descAr": "عرض واضح ومتدرج بعناوين ومخططات تسهّل الفهم." },
+  { "framework": "CONTENT", "code": "CNT-3", "titleAr": "جودة الوسائط", "titleEn": "Media quality", "weight": 2, "descAr": "صور وفيديوهات ورسومات واضحة وذات صلة وبجودة مناسبة." },
+  { "framework": "CONTENT", "code": "CNT-4", "titleAr": "الاستشهاد وحقوق النشر", "titleEn": "Citations & copyright", "weight": 2, "descAr": "المصادر موثقة والمواد مستخدمة بترخيص سليم دون انتهاك حقوق." },
+  { "framework": "CONTENT", "code": "CNT-5", "titleAr": "سلامة اللغة", "titleEn": "Language quality", "weight": 1, "descAr": "لغة سليمة نحواً وإملاءً وأسلوباً ومناسبة للفئة المستهدفة." },
+
+  { "framework": "ACCESSIBILITY", "code": "ACC-1", "titleAr": "بدائل نصية للوسائط", "titleEn": "Text alternatives for media", "weight": 2, "descAr": "نصوص بديلة للصور ووصف للعناصر غير النصية." },
+  { "framework": "ACCESSIBILITY", "code": "ACC-2", "titleAr": "تعليقات ونصوص للفيديو والصوت", "titleEn": "Captions & transcripts", "weight": 2, "descAr": "توفر تعليقات مغلقة و/أو نصوص مكتوبة للمحتوى الصوتي والمرئي." },
+  { "framework": "ACCESSIBILITY", "code": "ACC-3", "titleAr": "تباين الألوان والقراءة", "titleEn": "Color contrast & readability", "weight": 2, "descAr": "تباين كافٍ وخطوط مقروءة ولا يعتمد المعنى على اللون وحده." },
+  { "framework": "ACCESSIBILITY", "code": "ACC-4", "titleAr": "بنية المستندات وإمكانية التنقل", "titleEn": "Document structure & navigation", "weight": 2, "descAr": "عناوين ومستويات وبنية منطقية تدعم قارئات الشاشة والتنقل." },
+  { "framework": "ACCESSIBILITY", "code": "ACC-5", "titleAr": "إتاحة الملفات القابلة للتنزيل", "titleEn": "Accessible downloadable files", "weight": 1, "descAr": "ملفات PDF/DOCX منسّقة بإتاحة (عناوين، نص قابل للقراءة آلياً)." },
+
+  { "framework": "CULTURAL_SAFETY", "code": "SAFE-1", "titleAr": "التوافق مع القيم والأنظمة", "titleEn": "Compliance with values & regulations", "weight": 3, "descAr": "خلو المحتوى مما يخالف القيم والأنظمة المعمول بها." },
+  { "framework": "CULTURAL_SAFETY", "code": "SAFE-2", "titleAr": "الملاءمة الدينية", "titleEn": "Religious appropriateness", "weight": 3, "descAr": "احترام الثوابت الدينية وخلو المحتوى مما يخالفها." },
+  { "framework": "CULTURAL_SAFETY", "code": "SAFE-3", "titleAr": "الحياد والملاءمة السياسية", "titleEn": "Political neutrality & appropriateness", "weight": 2, "descAr": "خلو المحتوى من مواد سياسية غير ملائمة أو مثيرة للجدل." },
+  { "framework": "CULTURAL_SAFETY", "code": "SAFE-4", "titleAr": "الملاءمة الثقافية للأمثلة والصور", "titleEn": "Cultural appropriateness of examples & imagery", "weight": 2, "descAr": "أمثلة وصور مناسبة ثقافياً وخالية من الإساءة أو التنميط." },
+  { "framework": "CULTURAL_SAFETY", "code": "SAFE-5", "titleAr": "خلو المحتوى من التحيز والإساءة", "titleEn": "No bias or defamation", "weight": 2, "descAr": "خلو المحتوى من تحيز أو تمييز أو إساءة لأفراد أو جماعات." }
+]
