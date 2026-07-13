@@ -95,6 +95,11 @@ model Review {
   contentLevel       ComplianceLevel?
   accessibilityLevel ComplianceLevel?
   safetyStatus       SafetyStatus?
+  // WHY: the AI-SUGGESTED verdict + Arabic rationale. Kept separate from
+  // `verdict` (which stays null until human sign-off) so governance rule #1 —
+  // AI is advisory only — holds. Step 7 persists the suggestion here.
+  suggestedVerdict   Verdict?
+  verdictRationaleAr String?
   verdict            Verdict?
   reviewedById       String?
   reviewedBy         User?            @relation("ReviewedBy", fields: [reviewedById], references: [id])

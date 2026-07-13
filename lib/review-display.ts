@@ -1,4 +1,11 @@
-import type { ReviewStatus } from "@prisma/client";
+import type {
+  ComplianceLevel,
+  Framework,
+  ReviewStatus,
+  SafetyStatus,
+  Severity,
+  Verdict,
+} from "@prisma/client";
 
 // WHY: Arabic labels for each review status, shown on the status badge. Keeping
 // the map here (not in the component) makes it reusable and testable.
@@ -39,3 +46,64 @@ const dateFormatter = new Intl.DateTimeFormat("ar", {
 export function formatDateAr(date: Date): string {
   return dateFormatter.format(date);
 }
+
+// WHY: Arabic labels + badge variants for the analysis output dimensions.
+export const COMPLIANCE_LEVEL_LABELS_AR: Record<ComplianceLevel, string> = {
+  HIGH: "مرتفع",
+  MEDIUM: "متوسط",
+  LOW: "منخفض",
+  NOT_ASSESSED: "لم يُقيَّم",
+};
+
+export const COMPLIANCE_LEVEL_VARIANTS: Record<ComplianceLevel, BadgeVariant> = {
+  HIGH: "default",
+  MEDIUM: "secondary",
+  LOW: "destructive",
+  NOT_ASSESSED: "outline",
+};
+
+export const SAFETY_STATUS_LABELS_AR: Record<SafetyStatus, string> = {
+  CLEAR: "سليم",
+  FLAGGED: "بحاجة لمراجعة بشرية",
+  FAILED: "مخالفة واضحة",
+};
+
+export const SAFETY_STATUS_VARIANTS: Record<SafetyStatus, BadgeVariant> = {
+  CLEAR: "default",
+  FLAGGED: "secondary",
+  FAILED: "destructive",
+};
+
+export const SEVERITY_LABELS_AR: Record<Severity, string> = {
+  CRITICAL: "حرجة",
+  HIGH: "عالية",
+  MEDIUM: "متوسطة",
+  LOW: "منخفضة",
+};
+
+export const SEVERITY_VARIANTS: Record<Severity, BadgeVariant> = {
+  CRITICAL: "destructive",
+  HIGH: "destructive",
+  MEDIUM: "secondary",
+  LOW: "outline",
+};
+
+// WHY: severity display + grouping order (most severe first).
+export const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+
+export const VERDICT_LABELS_AR: Record<Verdict, string> = {
+  READY: "جاهز للنشر",
+  READY_LIMITED_FIXES: "جاهز بعد تحسينات محدودة",
+  NEEDS_SUBSTANTIAL_REVISION: "يحتاج تعديلات جوهرية قبل النشر",
+  NOT_READY: "غير جاهز للنشر",
+  INCOMPLETE_EVIDENCE: "تعذّر إصدار حكم مكتمل بسبب نقص الأدلة",
+};
+
+// WHY: framework labels for grouping/labelling findings.
+export const FRAMEWORK_LABELS_AR: Record<Framework, string> = {
+  QM: "Quality Matters",
+  NELC: "المركز الوطني للتعلم الإلكتروني (NELC)",
+  CONTENT: "جودة المحتوى",
+  ACCESSIBILITY: "إتاحة الوصول",
+  CULTURAL_SAFETY: "السلامة الثقافية والدينية",
+};

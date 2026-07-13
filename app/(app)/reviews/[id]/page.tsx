@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AnalysisResults } from "@/components/review/analysis-results";
+import { AnalysisStatus } from "@/components/review/analysis-status";
+import { AnalyzeButton } from "@/components/review/analyze-button";
 import { CreatedToast } from "@/components/review/created-toast";
 import { ExtractButton } from "@/components/review/extract-button";
 import { FileInventory } from "@/components/review/file-inventory";
@@ -40,7 +43,10 @@ export default async function ReviewDetailPage({
   // WHY: scope by orgId so a reviewer can only open their own org's reviews.
   const review = await db.review.findFirst({
     where: { id, orgId: user.orgId },
-    include: { examinedFiles: { orderBy: { fileName: "asc" } } },
+    include: {
+      examinedFiles: { orderBy: { fileName: "asc" } },
+      findings: true,
+    },
   });
 
   if (!review) {
@@ -48,11 +54,22 @@ export default async function ReviewDetailPage({
   }
 
   const hasInventory = review.examinedFiles.length > 0;
+  const hasExaminable = review.examinedFiles.some((f) => f.examinable);
   const canExtract =
     review.status === "UPLOADED" || review.status === "EXTRACTED";
+  const canAnalyze =
+    hasExaminable &&
+    (review.status === "EXTRACTED" ||
+      review.status === "ANALYZED" ||
+      review.status === "FAILED");
+  const isAnalyzing = review.status === "ANALYZING";
+  const isAnalyzed =
+    review.status === "ANALYZED" ||
+    review.status === "SIGNED_OFF" ||
+    review.status === "EXPORTED";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       {created === "1" ? <CreatedToast /> : null}
 
       <Link
@@ -81,6 +98,12 @@ export default async function ReviewDetailPage({
             الملف المصدر: <span dir="ltr">{review.sourceFileName}</span>
           </p>
 
+          {review.status === "FAILED" ? (
+            <p className="text-destructive">
+              تعذّر إكمال العملية. يمكنك إعادة المحاولة أدناه.
+            </p>
+          ) : null}
+
           {!hasInventory ? (
             <div className="flex flex-col items-start gap-3">
               <p>
@@ -90,18 +113,31 @@ export default async function ReviewDetailPage({
               {canExtract ? <ExtractButton reviewId={review.id} /> : null}
             </div>
           ) : (
-            canExtract && (
-              <div>
+            <div className="flex flex-wrap gap-3">
+              {canExtract ? (
                 <ExtractButton
                   reviewId={review.id}
                   label="إعادة الاستخراج"
                   variant="outline"
                 />
-              </div>
-            )
+              ) : null}
+              {canAnalyze ? (
+                <AnalyzeButton
+                  reviewId={review.id}
+                  label={isAnalyzed ? "إعادة التحليل" : undefined}
+                  variant={isAnalyzed ? "outline" : "default"}
+                />
+              ) : null}
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {isAnalyzing ? <AnalysisStatus /> : null}
+
+      {isAnalyzed ? (
+        <AnalysisResults review={review} findings={review.findings} />
+      ) : null}
 
       {hasInventory ? <FileInventory files={review.examinedFiles} /> : null}
     </div>
