@@ -1,0 +1,156 @@
+// ELQAI — Prisma schema
+// Data model per PRD §6. Multi-tenant-ready (Org present now so a future
+// university-wide rollout needs no rebuild). MVP runs single-tenant.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  REVIEWER
+  ADMIN
+  LEADERSHIP
+}
+
+enum ReviewStatus {
+  UPLOADED
+  EXTRACTED
+  ANALYZING
+  ANALYZED
+  SIGNED_OFF
+  EXPORTED
+  FAILED
+}
+
+enum Verdict {
+  READY                        // جاهز للنشر
+  READY_LIMITED_FIXES          // جاهز بعد تحسينات محدودة
+  NEEDS_SUBSTANTIAL_REVISION   // يحتاج تعديلات جوهرية قبل النشر
+  NOT_READY                    // غير جاهز للنشر
+  INCOMPLETE_EVIDENCE          // تعذر إصدار حكم مكتمل بسبب نقص الأدلة
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Framework {
+  QM
+  NELC
+  CONTENT
+  ACCESSIBILITY
+  CULTURAL_SAFETY
+}
+
+enum SafetyStatus {
+  CLEAR
+  FLAGGED
+  FAILED
+}
+
+enum ComplianceLevel {
+  HIGH
+  MEDIUM
+  LOW
+  NOT_ASSESSED
+}
+
+model Org {
+  id      String   @id @default(cuid())
+  name    String
+  users   User[]
+  reviews Review[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id])
+  email     String   @unique
+  name      String
+  role      Role     @default(REVIEWER)
+  reviews   Review[] @relation("ReviewedBy")
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id                 String           @id @default(cuid())
+  orgId              String
+  org                Org              @relation(fields: [orgId], references: [id])
+  courseName         String
+  courseCode         String
+  sourceFileName     String
+  status             ReviewStatus     @default(UPLOADED)
+  overallReadiness   Int?             // 0-100
+  qmLevel            ComplianceLevel?
+  nelcLevel          ComplianceLevel?
+  contentLevel       ComplianceLevel?
+  accessibilityLevel ComplianceLevel?
+  safetyStatus       SafetyStatus?
+  verdict            Verdict?
+  reviewedById       String?
+  reviewedBy         User?            @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  signedOffAt        DateTime?        // human sign-off gate — export blocked until set
+  examinedFiles      ExaminedFile[]
+  findings           Finding[]
+  exports            ReportExport[]
+  createdAt          DateTime         @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+model ExaminedFile {
+  id         String  @id @default(cuid())
+  reviewId   String
+  review     Review  @relation(fields: [reviewId], references: [id])
+  fileName   String
+  fileType   String  // html | pdf | docx | pptx | video | audio | scorm | other
+  examinable Boolean
+  reason     String? // why not examinable (e.g. "video — not auto-assessable")
+}
+
+model Finding {
+  id               String    @id @default(cuid())
+  reviewId         String
+  review           Review    @relation(fields: [reviewId], references: [id])
+  framework        Framework
+  criterionRef     String?   // links to RubricCriterion.code
+  severity         Severity
+  descriptionAr    String
+  recommendationAr String
+  location         String?   // file / page reference
+  aiGenerated      Boolean   @default(true)
+  overridden       Boolean   @default(false) // reviewer edited it
+  accepted         Boolean   @default(true)  // included in report
+
+  @@index([reviewId, severity])
+}
+
+// The fixed built-in rubric. SEEDED. Criterion text populated from licensed
+// QM source + official NELC standard. See docs/rubric-seed-template.md.
+model RubricCriterion {
+  id        String    @id @default(cuid())
+  framework Framework
+  code      String    @unique
+  titleAr   String
+  titleEn   String
+  weight    Int
+  descAr    String?
+}
+
+model ReportExport {
+  id          String   @id @default(cuid())
+  reviewId    String
+  review      Review   @relation(fields: [reviewId], references: [id])
+  format      String   // pdf | docx
+  filePath    String
+  generatedAt DateTime @default(now())
+}
