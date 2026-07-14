@@ -137,6 +137,7 @@ model Finding {
   accepted         Boolean   @default(true)  // included in report
 
   @@index([reviewId, severity])
+  @@index([criterionRef])
 }
 
 // The fixed built-in rubric. SEEDED. Criterion text populated from licensed
