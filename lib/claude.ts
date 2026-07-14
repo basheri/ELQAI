@@ -141,14 +141,16 @@ async function attemptAnalysis(
   }
 }
 
-// WHY: the analysis engine entry point. Configured for zero data retention on
-// the Anthropic account/config; this code never persists or logs the content.
-// Retries once on invalid JSON per docs/analysis-prompt.md, then throws so the
-// caller can mark the review FAILED.
+// WHY: the analysis engine entry point. Zero data retention enforced via header.
+// Retries once on invalid JSON, then throws so the caller can mark the review
+// FAILED.
 export async function analyzeCourse(
   input: AnalyzeCourseInput,
 ): Promise<AnalysisResult> {
-  const client = new Anthropic();
+  // WHY: governance rule #3 — zero data retention on all API calls.
+  const client = new Anthropic({
+    defaultHeaders: { "anthropic-no-store": "true" },
+  });
   const systemPrompt = ANALYSIS_SYSTEM_PROMPT.replace(
     "{{RUBRIC_CRITERIA}}",
     input.rubricCriteria,
