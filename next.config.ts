@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // WHY: pdf-parse, unzipper, mammoth, playwright, docx are server-only Node
-  // libraries; keep them external so the server bundle doesn't try to bundle them.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "200mb",
+    },
+  },
   serverExternalPackages: [
     "@prisma/client",
     "pdf-parse",
