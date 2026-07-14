@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// WHY: routes that are always reachable without a session.
 const PUBLIC_PATHS = ["/login"];
 
 function isPublicPath(pathname: string): boolean {
@@ -10,12 +9,19 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
-// WHY: runs in middleware on every matched request. It refreshes the Supabase
-// session cookie AND enforces server-side protection: unauthenticated users are
-// redirected to /login for any non-public route (CLAUDE.md auth rule).
 export async function updateSession(
   request: NextRequest,
 ): Promise<NextResponse> {
+  // WHY: dev bypass — skip auth check entirely.
+  if (process.env.DEV_BYPASS_AUTH === "true") {
+    if (isPublicPath(request.nextUrl.pathname)) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      return NextResponse.redirect(homeUrl);
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -41,8 +47,6 @@ export async function updateSession(
     },
   );
 
-  // WHY: getUser() revalidates the token with Supabase; a network/token error is
-  // treated as "no session" so we fail safe toward the login page.
   let isAuthenticated = false;
   try {
     const {
@@ -59,7 +63,6 @@ export async function updateSession(
     return NextResponse.redirect(loginUrl);
   }
 
-  // WHY: a logged-in user hitting /login is sent to the app root.
   if (isAuthenticated && isPublicPath(request.nextUrl.pathname)) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = "/";
