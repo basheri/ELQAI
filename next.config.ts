@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "200mb",
     },
+    middlewareClientMaxBodySize: "200mb",
   },
   serverExternalPackages: [
     "@prisma/client",
