@@ -22,7 +22,7 @@ ELQAI is a Next.js 15 (App Router) web application that automates e-course quali
 │  └──────┬──────┘  └─────────────┘  └──────────────────────┘│
 │         │                                                    │
 │  ┌──────▼──────┐  ┌─────────────┐  ┌──────────────────────┐│
-│  │ Prisma ORM  │  │ Supabase    │  │ Anthropic Claude API ││
+│  │ Prisma ORM  │  │ Supabase    │  │ OpenRouter API       ││
 │  │ /lib/db.ts  │  │ Auth + Store│  │ /lib/claude.ts       ││
 │  └──────┬──────┘  └──────┬──────┘  └──────────────────────┘│
 └─────────┼────────────────┼──────────────────────────────────┘
@@ -52,7 +52,7 @@ ELQAI is a Next.js 15 (App Router) web application that automates e-course quali
 ### 4. External Services
 - **Supabase Auth**: Email/password authentication with SSR cookie-based sessions.
 - **Supabase Storage**: Two buckets — `course-exports` (zip exports) and `report-exports` (PDF/docx).
-- **Anthropic Claude API**: Analysis engine with zero-retention header (`anthropic-no-store: true`).
+- **OpenRouter API**: Analysis engine routing to Claude models via OpenRouter.
 
 ## Data Flow: Review Lifecycle
 
@@ -71,7 +71,7 @@ Each state transition is enforced by status checks in Server Actions.
 | Authorization | `getCurrentUser()` in every Server Action; role checks for dashboard |
 | Data isolation | All DB queries scoped to `user.orgId` |
 | PII protection | `scrubContent()` removes student data before API calls |
-| API security | Zero-retention header on all Claude API requests |
+| API security | PII stripped before API calls; API key server-side only |
 | Input validation | Zod schemas on all Server Action inputs |
 | Export gating | `signedOffAt` must be set before report export |
 | Secret management | API keys server-side only; `NEXT_PUBLIC_` prefix only for safe values |

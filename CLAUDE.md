@@ -13,7 +13,7 @@
 - **Users:** Quality reviewers at a single deanship (internal tool).
 - **Source of truth for scope:** `PRD.md`. If this file and the PRD ever conflict, follow the PRD and flag the conflict.
 - **Current phase:** MVP (v1.0 — core loop). See `BUILD_PLAN.md`.
-- **Stack:** Next.js (App Router, TypeScript) · Tailwind + shadcn/ui (RTL) · PostgreSQL via Supabase · Prisma · Supabase Auth + Storage · Anthropic Claude API · Playwright (PDF) + `docx` (Word).
+- **Stack:** Next.js (App Router, TypeScript) · Tailwind + shadcn/ui (RTL) · PostgreSQL via Supabase · Prisma · Supabase Auth + Storage · OpenRouter API (Claude models) · Playwright (PDF) + `docx` (Word).
 
 ---
 
@@ -23,7 +23,7 @@ These rules exist because ELQAI handles sensitive institutional content and issu
 
 1. **AI is advisory only.** ELQAI never auto-issues a verdict. A review MUST pass through explicit human **sign-off** before any report can be exported. The "Export" action must be disabled until `signedOffAt` is set.
 2. **Strip PII before any API call.** Blackboard exports may contain student submissions, grades, discussion posts, and rosters. This content MUST be removed/excluded in a pre-processing step **before** any course content is sent to the Claude API. Never send raw export content to the API.
-3. **Zero-retention API.** All Anthropic API calls must be configured for zero data retention. Never log full course content or full API request bodies.
+3. **Data privacy.** Never log full course content or full API request bodies. PII must be stripped before any external API call.
 4. **Never embed Quality Matters rubric text verbatim.** The QM rubric is proprietary/licensed. The code holds the *structure* of criteria; the actual criterion text is loaded from a seed file the owner populates from a licensed source. Do not paste QM rubric wording into the repo.
 5. **Arabic report output is binding.** The generated report is Arabic, right-to-left, executive prose, with **Western (English) numerals** (0-9), correct bidi for embedded English terms, and the exact structure in `docs/report-structure.md`. Do not change this structure without instruction.
 6. **Secrets never touch the client.** API keys, service-role keys, and database URLs are server-side only.

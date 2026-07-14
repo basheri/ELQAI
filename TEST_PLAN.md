@@ -16,11 +16,11 @@ All tests use **Vitest** + **React Testing Library** (jsdom environment). Server
 | `actions/dashboard.test.ts` | 17 | getDashboardData (role gating, aggregation, org scope, zero reviews, bucket boundaries, null readiness, year boundaries, rounding, top-10) |
 | `lib/blackboard-parser.test.ts` | 6 | Zip extraction, file classification, metadata skipping |
 | `lib/pii-scrubber.test.ts` | 4 | Structural exclusion, content redaction, safe content passthrough |
-| `lib/claude.test.ts` | 6 | API call, JSON extraction, retry on invalid output, error handling, zero-retention header |
+| `lib/claude.test.ts` | 7 | API call, JSON extraction, retry on invalid output, error handling, OpenRouter auth, missing key |
 | `lib/report/html-template.test.ts` | 6 | RTL attributes, executive summary, verdict, findings, file inventories |
 | `components/review/reviews-list.test.tsx` | 4 | List rendering, empty state, status badges, card links |
 
-**Total: 85 tests across 11 test files, all passing.**
+**Total: 86 tests across 11 test files, all passing.**
 
 ## Test Patterns
 

@@ -5,7 +5,7 @@
 - Node.js 18+
 - PostgreSQL database (Supabase recommended)
 - Supabase project with Auth and Storage enabled
-- Anthropic API key with zero-retention enabled
+- OpenRouter API key (provides access to Claude and other models)
 - Chromium (for Playwright PDF generation)
 
 ## Environment Variables
@@ -18,8 +18,8 @@ Copy `.env.example` to `.env` and configure:
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key (safe for client) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service-role key (server-only) |
-| `ANTHROPIC_API_KEY` | Yes | Claude API key |
-| `ANTHROPIC_MODEL` | No | Analysis model (default: `claude-opus-4-8`) |
+| `OPENROUTER_API_KEY` | Yes | OpenRouter API key |
+| `OPENROUTER_MODEL` | No | Analysis model (default: `anthropic/claude-sonnet-4`) |
 
 ## Supabase Setup
 

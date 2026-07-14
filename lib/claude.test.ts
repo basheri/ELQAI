@@ -1,16 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createMock = vi.fn();
-const constructorMock = vi.fn();
-
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: class {
-    constructor(opts: unknown) {
-      constructorMock(opts);
-    }
-    messages = { create: (...args: unknown[]) => createMock(...args) };
-  },
-}));
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 import { analyzeCourse } from "@/lib/claude";
 
@@ -35,31 +26,39 @@ const validResult = {
   ],
 };
 
-function textResponse(text: string) {
-  return { content: [{ type: "text", text }] };
+function jsonResponse(text: string, ok = true) {
+  return {
+    ok,
+    json: async () => ({
+      choices: [{ message: { content: text } }],
+    }),
+  };
 }
 
 const input = { rubricCriteria: "[]", courseContent: "محتوى تعليمي" };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("OPENROUTER_API_KEY", "sk-or-test-key");
 });
 
 describe("analyzeCourse", () => {
   it("returns the validated result on a valid JSON response", async () => {
-    createMock.mockResolvedValueOnce(textResponse(JSON.stringify(validResult)));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(JSON.stringify(validResult)),
+    );
 
     const result = await analyzeCourse(input);
 
     expect(result.suggestedVerdict).toBe("READY_LIMITED_FIXES");
     expect(result.overallReadiness).toBe(82);
     expect(result.findings).toHaveLength(1);
-    expect(createMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("strips code fences and still parses", async () => {
-    createMock.mockResolvedValueOnce(
-      textResponse("```json\n" + JSON.stringify(validResult) + "\n```"),
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse("```json\n" + JSON.stringify(validResult) + "\n```"),
     );
 
     const result = await analyzeCourse(input);
@@ -67,39 +66,46 @@ describe("analyzeCourse", () => {
   });
 
   it("retries once on invalid JSON, then succeeds", async () => {
-    createMock
-      .mockResolvedValueOnce(textResponse("not json at all"))
-      .mockResolvedValueOnce(textResponse(JSON.stringify(validResult)));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse("not json at all"))
+      .mockResolvedValueOnce(jsonResponse(JSON.stringify(validResult)));
 
     const result = await analyzeCourse(input);
 
     expect(result.safetyStatus).toBe("CLEAR");
-    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("throws after two invalid responses", async () => {
-    createMock.mockResolvedValue(textResponse("{ not valid }"));
+    fetchMock.mockResolvedValue(jsonResponse("{ not valid }"));
 
     await expect(analyzeCourse(input)).rejects.toThrow(/invalid output/i);
-    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("rejects a schema-invalid result (out-of-range readiness)", async () => {
     const bad = { ...validResult, overallReadiness: 250 };
-    createMock.mockResolvedValue(textResponse(JSON.stringify(bad)));
+    fetchMock.mockResolvedValue(jsonResponse(JSON.stringify(bad)));
 
     await expect(analyzeCourse(input)).rejects.toThrow();
-    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("sets zero-retention header on the Anthropic client", async () => {
-    createMock.mockResolvedValueOnce(textResponse(JSON.stringify(validResult)));
+  it("sends the OpenRouter API key as Bearer token", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(JSON.stringify(validResult)),
+    );
 
     await analyzeCourse(input);
 
-    const opts = constructorMock.mock.calls[0][0] as {
-      defaultHeaders: Record<string, string>;
-    };
-    expect(opts.defaultHeaders["anthropic-no-store"]).toBe("true");
+    const callArgs = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = callArgs[1].headers as Record<string, string>;
+    expect(headers["Authorization"]).toBe("Bearer sk-or-test-key");
+  });
+
+  it("throws when OPENROUTER_API_KEY is not set", async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "");
+
+    await expect(analyzeCourse(input)).rejects.toThrow(/OPENROUTER_API_KEY/i);
   });
 });

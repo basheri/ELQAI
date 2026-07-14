@@ -1,10 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 import { AnalysisResultSchema, type AnalysisResult } from "@/lib/analysis-result";
 
-// WHY: analysis model id comes from env (defaults to the configured model). Kept
-// server-side only.
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8";
+// WHY: OpenRouter model id — defaults to Claude Sonnet via OpenRouter.
+const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // WHY: ELQAI's own analysis instruction (docs/analysis-prompt.md) — NOT QM
 // rubric text. The two runtime variables are injected before the call. The
@@ -90,22 +89,19 @@ If the provided content is insufficient to assess a dimension, set its level to 
 prefer the INCOMPLETE_EVIDENCE verdict rather than guessing.`;
 
 export interface AnalyzeCourseInput {
-  /** The seeded RubricCriterion set as JSON. */
   rubricCriteria: string;
-  /** PII-scrubbed instructional content + file inventory. */
   courseContent: string;
 }
 
-// WHY: pull all text out of the response content blocks (there may be a leading
-// thinking block, which we ignore) and strip any accidental code fences.
-function extractJsonText(message: Anthropic.Message): string {
-  const text = message.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("")
-    .trim();
+interface OpenRouterResponse {
+  choices?: { message?: { content?: string } }[];
+  error?: { message?: string };
+}
 
-  // Defensive: the prompt asks for raw JSON, but strip ```json fences if present.
+// WHY: extract the text from the OpenRouter response and strip any accidental
+// code fences the model may wrap around the JSON.
+function extractJsonText(content: string): string {
+  const text = content.trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   return (fenced ? fenced[1] : text).trim();
 }
@@ -114,43 +110,57 @@ function extractJsonText(message: Anthropic.Message): string {
 // invalid output so the caller can retry / fail gracefully. Never logs the
 // content or the full request/response body (governance rules #3, #4).
 async function attemptAnalysis(
-  client: Anthropic,
+  apiKey: string,
   systemPrompt: string,
 ): Promise<AnalysisResult | null> {
   try {
-    const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      // WHY: adaptive thinking on the current Opus model; no budget_tokens / no
-      // sampling params (rejected on this model tier).
-      thinking: { type: "adaptive" },
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content:
-            "حلّل المقرر وفق التعليمات، وأعد كائن JSON واحدًا فقط بالبنية المحددة.",
-        },
-      ],
+    const response = await fetch(OPENROUTER_BASE_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 16000,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content:
+              "حلّل المقرر وفق التعليمات، وأعد كائن JSON واحدًا فقط بالبنية المحددة.",
+          },
+        ],
+      }),
     });
 
-    const parsed: unknown = JSON.parse(extractJsonText(message));
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as OpenRouterResponse;
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      return null;
+    }
+
+    const parsed: unknown = JSON.parse(extractJsonText(content));
     return AnalysisResultSchema.parse(parsed);
   } catch {
     return null;
   }
 }
 
-// WHY: the analysis engine entry point. Zero data retention enforced via header.
-// Retries once on invalid JSON, then throws so the caller can mark the review
-// FAILED.
+// WHY: the analysis engine entry point. Retries once on invalid JSON, then
+// throws so the caller can mark the review FAILED.
 export async function analyzeCourse(
   input: AnalyzeCourseInput,
 ): Promise<AnalysisResult> {
-  // WHY: governance rule #3 — zero data retention on all API calls.
-  const client = new Anthropic({
-    defaultHeaders: { "anthropic-no-store": "true" },
-  });
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured.");
+  }
+
   // WHY: function replacer avoids $& / $` / $' interpolation that
   // String.replace does on literal replacement strings — course content
   // may contain dollar-sign sequences (code, math, shell scripts).
@@ -159,12 +169,12 @@ export async function analyzeCourse(
     () => input.rubricCriteria,
   ).replace("{{COURSE_CONTENT}}", () => input.courseContent);
 
-  const first = await attemptAnalysis(client, systemPrompt);
+  const first = await attemptAnalysis(apiKey, systemPrompt);
   if (first) {
     return first;
   }
 
-  const second = await attemptAnalysis(client, systemPrompt);
+  const second = await attemptAnalysis(apiKey, systemPrompt);
   if (second) {
     return second;
   }
