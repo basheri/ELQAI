@@ -51,7 +51,7 @@ ELQAI is a Next.js 15 (App Router) web application that automates e-course quali
 
 ### 4. External Services
 - **Supabase Auth**: Email/password authentication with SSR cookie-based sessions.
-- **Supabase Storage**: Two buckets — `course-uploads` (zip exports) and `report-exports` (PDF/docx).
+- **Supabase Storage**: Two buckets — `course-exports` (zip exports) and `report-exports` (PDF/docx).
 - **Anthropic Claude API**: Analysis engine with zero-retention header (`anthropic-no-store: true`).
 
 ## Data Flow: Review Lifecycle
