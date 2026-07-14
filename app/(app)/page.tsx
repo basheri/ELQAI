@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 
 import { NewReviewButton } from "@/components/review/new-review-button";
-import { ReviewsList } from "@/components/review/reviews-list";
+import { ReviewsSearch } from "@/components/review/reviews-search";
 
 import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 
 import type { ReviewSummary } from "@/types/review";
+
+const PAGE_SIZE = 20;
 
 export default async function ReviewsPage() {
   const user = await getCurrentUser();
@@ -15,12 +17,10 @@ export default async function ReviewsPage() {
     redirect("/login");
   }
 
-  // WHY: newest first, scoped to the current org. Capped at 20 for the MVP list;
-  // Step 11 adds cursor-based pagination + search over the full history.
-  const reviews: ReviewSummary[] = await db.review.findMany({
+  const rows = await db.review.findMany({
     where: { orgId: user.orgId },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: PAGE_SIZE + 1,
     select: {
       id: true,
       courseName: true,
@@ -31,19 +31,26 @@ export default async function ReviewsPage() {
     },
   });
 
+  const hasMore = rows.length > PAGE_SIZE;
+  const reviews: ReviewSummary[] = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  const nextCursor = hasMore ? reviews[reviews.length - 1].id : undefined;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">المراجعات</h1>
           <p className="text-sm text-muted-foreground">
-            مراجعات جودة المقررات الإلكترونية لجهتك، الأحدث أولاً.
+            مراجعات جودة المقررات الإلكترونية لجهتك.
           </p>
         </div>
         <NewReviewButton />
       </div>
 
-      <ReviewsList reviews={reviews} />
+      <ReviewsSearch
+        initialReviews={reviews}
+        initialCursor={nextCursor}
+      />
     </div>
   );
 }
