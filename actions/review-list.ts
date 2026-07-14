@@ -62,24 +62,28 @@ export async function listReviews(
     where.verdict = verdict;
   }
 
-  const reviews = await db.review.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: PAGE_SIZE + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      courseName: true,
-      courseCode: true,
-      status: true,
-      verdict: true,
-      createdAt: true,
-    },
-  });
+  try {
+    const reviews = await db.review.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        courseName: true,
+        courseCode: true,
+        status: true,
+        verdict: true,
+        createdAt: true,
+      },
+    });
 
-  const hasMore = reviews.length > PAGE_SIZE;
-  const page = hasMore ? reviews.slice(0, PAGE_SIZE) : reviews;
-  const nextCursor = hasMore ? page[page.length - 1].id : undefined;
+    const hasMore = reviews.length > PAGE_SIZE;
+    const page = hasMore ? reviews.slice(0, PAGE_SIZE) : reviews;
+    const nextCursor = hasMore ? page[page.length - 1].id : undefined;
 
-  return { reviews: page, nextCursor };
+    return { reviews: page, nextCursor };
+  } catch {
+    return { error: "حدث خطأ أثناء تحميل المراجعات." };
+  }
 }

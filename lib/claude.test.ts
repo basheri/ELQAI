@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// WHY: mock the Anthropic SDK so we can drive the API response and assert the
-// parse/validate/retry behavior without any network call.
 const createMock = vi.fn();
+const constructorMock = vi.fn();
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
+    constructor(opts: unknown) {
+      constructorMock(opts);
+    }
     messages = { create: (...args: unknown[]) => createMock(...args) };
   },
 }));
@@ -88,5 +90,16 @@ describe("analyzeCourse", () => {
 
     await expect(analyzeCourse(input)).rejects.toThrow();
     expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("sets zero-retention header on the Anthropic client", async () => {
+    createMock.mockResolvedValueOnce(textResponse(JSON.stringify(validResult)));
+
+    await analyzeCourse(input);
+
+    const opts = constructorMock.mock.calls[0][0] as {
+      defaultHeaders: Record<string, string>;
+    };
+    expect(opts.defaultHeaders["anthropic-no-store"]).toBe("true");
   });
 });

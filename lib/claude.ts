@@ -151,10 +151,13 @@ export async function analyzeCourse(
   const client = new Anthropic({
     defaultHeaders: { "anthropic-no-store": "true" },
   });
+  // WHY: function replacer avoids $& / $` / $' interpolation that
+  // String.replace does on literal replacement strings — course content
+  // may contain dollar-sign sequences (code, math, shell scripts).
   const systemPrompt = ANALYSIS_SYSTEM_PROMPT.replace(
     "{{RUBRIC_CRITERIA}}",
-    input.rubricCriteria,
-  ).replace("{{COURSE_CONTENT}}", input.courseContent);
+    () => input.rubricCriteria,
+  ).replace("{{COURSE_CONTENT}}", () => input.courseContent);
 
   const first = await attemptAnalysis(client, systemPrompt);
   if (first) {

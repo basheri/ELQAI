@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, Search, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +51,9 @@ export function ReviewsSearch({
             ? (newVerdict as Verdict)
             : undefined,
       });
-      if (result.reviews) {
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.reviews) {
         setReviews(result.reviews);
         setCursor(result.nextCursor);
       }
@@ -82,7 +85,9 @@ export function ReviewsSearch({
           verdict !== ALL_VERDICTS ? (verdict as Verdict) : undefined,
         cursor,
       });
-      if (result.reviews) {
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.reviews) {
         setReviews((prev) => [...prev, ...result.reviews!]);
         setCursor(result.nextCursor);
       }

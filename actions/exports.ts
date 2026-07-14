@@ -131,6 +131,11 @@ export async function exportReport(
     revalidatePath(`/reviews/${review.id}`);
     return { downloadUrl: signedUrl.signedUrl };
   } catch {
+    const supabaseCleanup = createSupabaseAdminClient();
+    await supabaseCleanup.storage
+      .from(REPORT_EXPORTS_BUCKET)
+      .remove([storagePath])
+      .catch(() => undefined);
     await db.reportExport
       .delete({ where: { id: exportId } })
       .catch(() => undefined);

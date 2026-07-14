@@ -31,12 +31,14 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+const removeMock = vi.fn().mockResolvedValue({ error: null });
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     storage: {
       from: () => ({
         upload: (...args: unknown[]) => uploadMock(...args),
         createSignedUrl: (...args: unknown[]) => createSignedUrlMock(...args),
+        remove: (...args: unknown[]) => removeMock(...args),
       }),
     },
   }),

@@ -67,6 +67,7 @@ export async function getDashboardData(): Promise<DashboardResult> {
     status: { in: ["SIGNED_OFF" as const, "EXPORTED" as const] },
   };
 
+  try {
   const [reviews, findingGroups, criterionLookup] = await Promise.all([
     db.review.findMany({
       where: completedWhere,
@@ -131,12 +132,15 @@ export async function getDashboardData(): Promise<DashboardResult> {
       };
     });
 
-  const monthMap = new Map<string, { count: number; totalReadiness: number }>();
+  const monthMap = new Map<string, { count: number; readinessSum: number; readinessCount: number }>();
   for (const r of reviews) {
     const key = `${r.createdAt.getFullYear()}-${String(r.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    const entry = monthMap.get(key) ?? { count: 0, totalReadiness: 0 };
+    const entry = monthMap.get(key) ?? { count: 0, readinessSum: 0, readinessCount: 0 };
     entry.count += 1;
-    entry.totalReadiness += r.overallReadiness ?? 0;
+    if (r.overallReadiness !== null) {
+      entry.readinessSum += r.overallReadiness;
+      entry.readinessCount += 1;
+    }
     monthMap.set(key, entry);
   }
   const trend: TrendPoint[] = Array.from(monthMap.entries())
@@ -144,7 +148,9 @@ export async function getDashboardData(): Promise<DashboardResult> {
     .map(([month, data]) => ({
       month,
       count: data.count,
-      avgReadiness: Math.round(data.totalReadiness / data.count),
+      avgReadiness: data.readinessCount > 0
+        ? Math.round(data.readinessSum / data.readinessCount)
+        : 0,
     }));
 
   return {
@@ -156,4 +162,7 @@ export async function getDashboardData(): Promise<DashboardResult> {
       trend,
     },
   };
+  } catch {
+    return { error: "حدث خطأ أثناء تحميل بيانات لوحة المؤشرات." };
+  }
 }
