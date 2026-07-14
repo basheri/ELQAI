@@ -17,23 +17,23 @@
 | 8 | Findings review + override | Complete | Edit/exclude/verdict controls, 5 tests |
 | 9 | Sign-off gate | Complete | Governance rule #1 enforced, 5 tests |
 | 10 | Report PDF + Word | Complete | HTML template, Playwright PDF, docx Word, 12 tests |
-| 11 | History + search | **Not started** | Needed: filters, cursor pagination, re-export |
-| 12 | Dashboard | **Not started** | Needed: aggregate trends, charts |
+| 11 | History + search | Complete | Cursor pagination, search, verdict filter, 7 tests |
+| 12 | Dashboard | Complete | 4 chart widgets, role-gated, 8 tests |
 
 ## Feature Gap Analysis
 
 | Area | Requirement | State | Required Work | Priority |
 |------|-------------|-------|---------------|----------|
-| Reviews list | Cursor-based pagination | Missing | Add cursor param, load-more | P1 |
-| Reviews list | Search by course name/code | Missing | Add search input + server query | P1 |
-| Reviews list | Filter by verdict | Missing | Add verdict filter dropdown | P1 |
-| Reviews list | Filter by date range | Missing | Add date filter | P2 |
-| Past reviews | Re-open read-only | Partial | Detail page already supports locked view | P1 |
-| Past reviews | Re-export report | Partial | Export buttons work on signed-off reviews | P1 |
-| Dashboard | Readiness distribution | Missing | Aggregate query + chart | P2 |
-| Dashboard | Verdict mix | Missing | Aggregate query + chart | P2 |
-| Dashboard | Common failing standards | Missing | Aggregate findings query | P2 |
-| Dashboard | Trend over time | Missing | Time-series query + chart | P2 |
+| Reviews list | Cursor-based pagination | Done | — | — |
+| Reviews list | Search by course name/code | Done | — | — |
+| Reviews list | Filter by verdict | Done | — | — |
+| Reviews list | Filter by date range | Deferred | Add date filter (v1.2+) | P2 |
+| Past reviews | Re-open read-only | Done | Detail page supports locked view | — |
+| Past reviews | Re-export report | Done | Export buttons on signed-off reviews | — |
+| Dashboard | Readiness distribution | Done | Bar chart widget | — |
+| Dashboard | Verdict mix | Done | Pie chart widget | — |
+| Dashboard | Common failing standards | Done | Top-10 table widget | — |
+| Dashboard | Trend over time | Done | Line chart widget | — |
 
 ## Security Checklist
 
@@ -49,12 +49,13 @@
 | Rate limiting on auth | Verified — checkRateLimit() on signIn |
 | No XSS from course content | Verified — content not rendered as HTML in UI |
 | File upload restrictions | Verified — .zip only, 200MB max |
+| Dashboard role gate | Verified — ADMIN + LEADERSHIP only |
 
 ## Test Summary
 
-- 50 tests across 9 test files, all passing
-- Coverage: Server Actions, parsers, PII scrubber, Claude client, HTML template, component rendering
+- 65 tests across 11 test files, all passing
+- Coverage: Server Actions, parsers, PII scrubber, Claude client, HTML template, dashboard aggregation, component rendering
 
 ## Current Phase
 
-Implementing Steps 11 + 12 to complete the full feature set.
+All 13 build steps (0-12) complete. MVP feature set is done.

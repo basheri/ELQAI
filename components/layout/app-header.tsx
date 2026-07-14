@@ -4,19 +4,32 @@ import { Button } from "@/components/ui/button";
 
 import { signOut } from "@/actions/auth";
 
+import type { Role } from "@prisma/client";
+
 interface AppHeaderProps {
   userEmail: string;
+  userRole: Role;
 }
 
-// WHY: the shared RTL top bar for every authenticated page — app name on the
-// start side, the signed-in user + sign-out on the end side.
-export function AppHeader({ userEmail }: AppHeaderProps) {
+export function AppHeader({ userEmail, userRole }: AppHeaderProps) {
+  const showDashboard = userRole === "ADMIN" || userRole === "LEADERSHIP";
+
   return (
     <header className="border-b">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="text-xl font-bold tracking-tight">
-          ELQAI
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-xl font-bold tracking-tight">
+            ELQAI
+          </Link>
+          {showDashboard ? (
+            <Link
+              href="/dashboard"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              لوحة المؤشرات
+            </Link>
+          ) : null}
+        </div>
 
         <div className="flex items-center gap-4">
           <span className="hidden text-sm text-muted-foreground sm:inline">
