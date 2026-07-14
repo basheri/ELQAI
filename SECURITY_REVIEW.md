@@ -13,6 +13,12 @@ The codebase demonstrates strong security practices overall. One governance comp
 | # | Severity | Finding | Status |
 |---|----------|---------|--------|
 | 1 | High | **Zero-retention API header missing** — `lib/claude.ts` created the Anthropic client without the `anthropic-no-store: true` header, relying on account-level config instead of code-level enforcement (governance rule #3). | **Fixed** — Added `defaultHeaders: { "anthropic-no-store": "true" }` to client constructor. |
+| 2 | High | **String.replace dollar-sign injection** — `lib/claude.ts` used `String.replace()` with literal replacement strings. Course content containing `$&`, `` $` ``, or `$'` could corrupt the system prompt. | **Fixed** — Replaced with function replacer: `.replace("{{X}}", () => value)`. |
+| 3 | Medium | **Unhandled Prisma errors in review-list** — `actions/review-list.ts` had no try/catch; database errors would throw an unhandled exception. | **Fixed** — Wrapped in try/catch returning `{ error }`. |
+| 4 | Medium | **Null readiness skewing dashboard averages** — Reviews with null `overallReadiness` contributed 0 to the sum but 1 to the count, deflating averages. | **Fixed** — Track `readinessCount` separately, only increment for non-null values. |
+| 5 | Low | **Storage orphan on export failure** — If upload succeeded but subsequent DB update or URL signing failed, the uploaded file was not cleaned up. | **Fixed** — Added storage `remove()` in catch block. |
+| 6 | Low | **Silent error swallowing in reviews-search** — Server Action errors were not surfaced to the user. | **Fixed** — Added `toast.error()` for error responses. |
+| 7 | Low | **Missing Zod validation on setFindingAccepted** — `findingId` and `accepted` params were not validated with Zod before use. | **Fixed** — Added `SetAcceptedSchema` validation. |
 
 ### Verified Secure
 
@@ -21,7 +27,7 @@ The codebase demonstrates strong security practices overall. One governance comp
 | Authentication | Secure | Supabase Auth with SSR cookie sessions. Middleware (`middleware.ts`) protects all non-public routes. Layout-level defense-in-depth via `getCurrentUser()`. |
 | Authorization / Role gating | Secure | Dashboard gated to ADMIN + LEADERSHIP roles in both the page component and Server Action. |
 | Org-scoped queries | Secure | Every Prisma query in Server Actions and page components filters by `user.orgId`. No cross-org data access possible. |
-| Input validation | Secure | All Server Actions validate inputs with Zod before any DB operation. File upload restricted to `.zip`, max 200MB. |
+| Input validation | Secure | All Server Actions validate inputs with Zod before any DB operation. File upload restricted to `.zip`, max 200MB. `setFindingAccepted` now validated (fixed in verification round). |
 | PII protection | Secure | `lib/pii-scrubber.ts` performs two-layer PII removal (structural exclusion + content redaction) before any Claude API call. Pipeline enforced in `actions/analysis.ts`. |
 | Sign-off gate | Secure | `actions/exports.ts` checks `signedOffAt` before allowing report export. Export buttons disabled in UI until sign-off. |
 | Secret management | Secure | Only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are client-exposed. API keys, service-role key, and DATABASE_URL are server-side only. |

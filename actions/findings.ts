@@ -73,6 +73,11 @@ export async function updateFinding(
   return {};
 }
 
+const SetAcceptedSchema = z.object({
+  findingId: z.string().min(1),
+  accepted: z.boolean(),
+});
+
 // WHY: exclude a finding from the report (accepted=false) or re-include it. The
 // report uses only accepted findings.
 export async function setFindingAccepted(
@@ -84,7 +89,12 @@ export async function setFindingAccepted(
     return { error: "انتهت الجلسة، يرجى تسجيل الدخول من جديد." };
   }
 
-  const finding = await loadEditableFinding(findingId, user.orgId);
+  const parsed = SetAcceptedSchema.safeParse({ findingId, accepted });
+  if (!parsed.success) {
+    return { error: "بيانات غير صحيحة." };
+  }
+
+  const finding = await loadEditableFinding(parsed.data.findingId, user.orgId);
   if (!finding) {
     return { error: "الملاحظة غير موجودة." };
   }
@@ -94,8 +104,8 @@ export async function setFindingAccepted(
 
   try {
     await db.finding.update({
-      where: { id: findingId },
-      data: { accepted },
+      where: { id: finding.id },
+      data: { accepted: parsed.data.accepted },
     });
   } catch {
     return { error: "تعذّر تحديث الملاحظة، يرجى المحاولة لاحقاً." };
