@@ -95,4 +95,84 @@ describe("listReviews", () => {
     expect(result.error).toBeTruthy();
     expect(reviewFindManyMock).not.toHaveBeenCalled();
   });
+
+  it("returns empty list with no results", async () => {
+    reviewFindManyMock.mockResolvedValue([]);
+
+    const result = await listReviews({});
+
+    expect(result.reviews).toHaveLength(0);
+    expect(result.nextCursor).toBeUndefined();
+  });
+
+  it("rejects invalid verdict value", async () => {
+    const result = await listReviews({ verdict: "INVALID" as never });
+
+    expect(result.error).toBeTruthy();
+    expect(reviewFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("trims and limits query length", async () => {
+    const result = await listReviews({ query: "a".repeat(201) });
+
+    expect(result.error).toBeTruthy();
+    expect(reviewFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("handles combined query and verdict filter", async () => {
+    await listReviews({ query: "CS", verdict: "READY" });
+
+    const args = reviewFindManyMock.mock.calls[0][0] as {
+      where: { orgId: string; OR: unknown[]; verdict: string };
+    };
+    expect(args.where.orgId).toBe("org_1");
+    expect(args.where.OR).toHaveLength(2);
+    expect(args.where.verdict).toBe("READY");
+  });
+
+  it("does not apply OR filter when query is empty string", async () => {
+    await listReviews({ query: "" });
+
+    const args = reviewFindManyMock.mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(args.where.OR).toBeUndefined();
+  });
+
+  it("does not apply OR filter when query is only whitespace", async () => {
+    await listReviews({ query: "   " });
+
+    const args = reviewFindManyMock.mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(args.where.OR).toBeUndefined();
+  });
+
+  it("sets correct take value for fetch-N+1 pattern", async () => {
+    await listReviews({});
+
+    const args = reviewFindManyMock.mock.calls[0][0] as { take: number };
+    expect(args.take).toBe(21);
+  });
+
+  it("orders by createdAt descending", async () => {
+    await listReviews({});
+
+    const args = reviewFindManyMock.mock.calls[0][0] as { orderBy: { createdAt: string } };
+    expect(args.orderBy.createdAt).toBe("desc");
+  });
+
+  it("does not set cursor or skip without cursor input", async () => {
+    await listReviews({});
+
+    const args = reviewFindManyMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(args.cursor).toBeUndefined();
+    expect(args.skip).toBeUndefined();
+  });
+
+  it("returns exactly PAGE_SIZE items when more exist", async () => {
+    const many = Array.from({ length: 25 }, (_, i) => makeReview(`r${i}`));
+    reviewFindManyMock.mockResolvedValue(many);
+
+    const result = await listReviews({});
+
+    expect(result.reviews).toHaveLength(20);
+    expect(result.nextCursor).toBeDefined();
+  });
 });
