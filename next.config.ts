@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["unzipper", "playwright", "pdf-parse", "mammoth"],
 };
 
 export default nextConfig;
