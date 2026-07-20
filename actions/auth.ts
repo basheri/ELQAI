@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { z } from "zod/v4";
 
@@ -20,58 +19,50 @@ export async function login(formData: FormData) {
     return { error: "بيانات الدخول غير صالحة" };
   }
 
-  const supabase = await createClient();
-  const { error, data } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
+  // WHY: auth disabled for development — skip Supabase, go straight to app
+  redirect("/");
+}
 
-  if (error) {
-    return { error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" };
-  }
+export async function signOut() {
+  redirect("/login");
+}
 
-  // WHY: ensure user + org rows exist on first login (single default org for MVP)
-  if (data.user) {
-    const existing = await db.user.findUnique({
-      where: { email: data.user.email! },
+export async function getCurrentUser() {
+  // WHY: auth disabled for development — return or create a dev user
+  try {
+    let user = await db.user.findFirst({
+      include: { org: true },
     });
 
-    if (!existing) {
+    if (!user) {
       let org = await db.org.findFirst();
       if (!org) {
         org = await db.org.create({
           data: { name: "المؤسسة الافتراضية" },
         });
       }
-      await db.user.create({
+      user = await db.user.create({
         data: {
-          email: data.user.email!,
-          name: data.user.email!.split("@")[0],
+          email: "dev@elqai.local",
+          name: "مطوّر",
+          role: "ADMIN",
           orgId: org.id,
         },
+        include: { org: true },
       });
     }
+
+    return user;
+  } catch {
+    // WHY: if DB is not connected, return a mock user so pages still render
+    return {
+      id: "dev-user",
+      email: "dev@elqai.local",
+      name: "مطوّر",
+      role: "ADMIN" as const,
+      orgId: "dev-org",
+      org: { id: "dev-org", name: "المؤسسة الافتراضية" },
+      createdAt: new Date(),
+    };
   }
-
-  redirect("/");
-}
-
-export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/login");
-}
-
-export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.email) return null;
-
-  return db.user.findUnique({
-    where: { email: user.email },
-    include: { org: true },
-  });
 }
