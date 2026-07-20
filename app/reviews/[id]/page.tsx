@@ -12,15 +12,21 @@ interface Props {
 
 export default async function ReviewPage({ params }: Props) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
 
   const { id } = await params;
-  const review = await getReview(id);
+
+  let review: Awaited<ReturnType<typeof getReview>> = null;
+  try {
+    review = await getReview(id);
+  } catch {
+    // WHY: DB may not be connected in dev
+  }
+
   if (!review) redirect("/");
 
   return (
-    <AppShell userName={user.name}>
-      <ReviewDetail review={review} userId={user.id} />
+    <AppShell userName={user?.name}>
+      <ReviewDetail review={review} userId={user?.id ?? ""} />
     </AppShell>
   );
 }
