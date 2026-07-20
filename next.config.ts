@@ -2,8 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["unzipper", "playwright", "pdf-parse", "mammoth"],
-  serverActions: {
-    bodySizeLimit: "200mb",
+  experimental: {
+    // WHY: default 1 MB Server Action body limit rejects course-export uploads
+    serverActions: {
+      bodySizeLimit: "200mb",
+    },
   },
 };
 
