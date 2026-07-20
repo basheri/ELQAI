@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { createClient } from "@/lib/supabase/server";
+import { loadCourseExport } from "@/lib/storage";
 import { parseBlackboardExport } from "@/lib/blackboard-parser";
 import { getCurrentUser } from "@/actions/auth";
 
@@ -17,16 +17,7 @@ export async function extractCourseContent(reviewId: string) {
   if (review.status !== "UPLOADED") return { error: "تم استخراج المحتوى مسبقاً" };
 
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
-      .from("course-exports")
-      .download(review.sourceFileName);
-
-    if (error || !data) {
-      return { error: "فشل تحميل ملف التصدير" };
-    }
-
-    const buffer = Buffer.from(await data.arrayBuffer());
+    const buffer = await loadCourseExport(review.sourceFileName);
     const files = await parseBlackboardExport(buffer);
 
     await db.$transaction([
@@ -49,10 +40,8 @@ export async function extractCourseContent(reviewId: string) {
 
     return { success: true };
   } catch (err) {
-    await db.review.update({
-      where: { id: reviewId },
-      data: { status: "FAILED" },
-    });
+    // WHY: keep status UPLOADED so the reviewer can retry extraction —
+    // a transient failure must not brick the review
     return { error: `فشل استخراج المحتوى: ${err instanceof Error ? err.message : "خطأ غير معروف"}` };
   }
 }

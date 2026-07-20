@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod/v4";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/actions/auth";
-import { createClient } from "@/lib/supabase/server";
 
 const newReviewSchema = z.object({
   courseName: z.string().min(1, "اسم المقرر مطلوب"),
   courseCode: z.string().min(1, "رمز المقرر مطلوب"),
+  storagePath: z.string().min(1, "ملف التصدير مطلوب"),
 });
 
 export async function createReview(formData: FormData) {
@@ -18,42 +18,37 @@ export async function createReview(formData: FormData) {
   const parsed = newReviewSchema.safeParse({
     courseName: formData.get("courseName"),
     courseCode: formData.get("courseCode"),
+    storagePath: formData.get("storagePath"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) {
-    return { error: "يجب رفع ملف تصدير المقرر (.zip)" };
+  // WHY: the file itself was uploaded via /api/upload; only accept a path
+  // inside this org's folder so one org can never reference another's export
+  const { storagePath } = parsed.data;
+  if (
+    !storagePath.startsWith(`exports/${user.orgId}/`) ||
+    storagePath.includes("..")
+  ) {
+    return { error: "مسار الملف غير صالح" };
   }
 
-  if (!file.name.endsWith(".zip")) {
-    return { error: "يجب أن يكون الملف بصيغة .zip" };
+  let review;
+  try {
+    review = await db.review.create({
+      data: {
+        orgId: user.orgId,
+        courseName: parsed.data.courseName,
+        courseCode: parsed.data.courseCode,
+        sourceFileName: storagePath,
+        status: "UPLOADED",
+      },
+    });
+  } catch {
+    return { error: "فشل إنشاء المراجعة. تأكد من اتصال قاعدة البيانات." };
   }
-
-  const supabase = await createClient();
-  const fileName = `${Date.now()}-${file.name}`;
-  const filePath = `exports/${user.orgId}/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("course-exports")
-    .upload(filePath, file);
-
-  if (uploadError) {
-    return { error: "فشل رفع الملف. حاول مرة أخرى." };
-  }
-
-  const review = await db.review.create({
-    data: {
-      orgId: user.orgId,
-      courseName: parsed.data.courseName,
-      courseCode: parsed.data.courseCode,
-      sourceFileName: filePath,
-      status: "UPLOADED",
-    },
-  });
 
   redirect(`/reviews/${review.id}`);
 }

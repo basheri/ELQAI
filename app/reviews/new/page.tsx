@@ -14,9 +14,42 @@ export default function NewReviewPage() {
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
-    const result = await createReview(formData);
-    if (result?.error) {
-      setError(result.error);
+
+    try {
+      const file = fileRef.current?.files?.[0];
+      if (!file) {
+        setError("يجب رفع ملف تصدير المقرر (.zip)");
+        setLoading(false);
+        return;
+      }
+
+      // WHY: the file goes through /api/upload (route handler) because Server
+      // Actions cannot reliably carry large multipart bodies
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.storagePath) {
+        setError(json?.error ?? "فشل رفع الملف. حاول مرة أخرى.");
+        setLoading(false);
+        return;
+      }
+
+      // WHY: strip the file from the action payload — it is already stored
+      formData.delete("file");
+      formData.set("storagePath", json.storagePath);
+
+      const result = await createReview(formData);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      }
+    } catch {
+      setError("حدث خطأ غير متوقع أثناء الرفع. حاول مرة أخرى.");
       setLoading(false);
     }
   }

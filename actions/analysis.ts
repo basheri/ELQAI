@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { createClient } from "@/lib/supabase/server";
+import { loadCourseExport } from "@/lib/storage";
 import { parseBlackboardExport } from "@/lib/blackboard-parser";
 import { scrubCourseContent } from "@/lib/pii-scrubber";
 import { analyzeCourse } from "@/lib/claude";
@@ -28,16 +28,7 @@ export async function runAnalysis(reviewId: string) {
       data: { status: "ANALYZING" },
     });
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
-      .from("course-exports")
-      .download(review.sourceFileName);
-
-    if (error || !data) {
-      throw new Error("فشل تحميل ملف التصدير");
-    }
-
-    const buffer = Buffer.from(await data.arrayBuffer());
+    const buffer = await loadCourseExport(review.sourceFileName);
     const files = await parseBlackboardExport(buffer);
 
     const examinableFiles = files.filter((f) => f.examinable && f.content);
@@ -88,10 +79,16 @@ export async function runAnalysis(reviewId: string) {
 
     return { success: true, suggestedVerdict: result.suggestedVerdict, rationaleAr: result.verdictRationaleAr };
   } catch (err) {
-    await db.review.update({
-      where: { id: reviewId },
-      data: { status: "FAILED" },
-    });
+    // WHY: roll back to EXTRACTED (not FAILED) so the reviewer can retry
+    // analysis — a transient API failure must not brick the review
+    try {
+      await db.review.update({
+        where: { id: reviewId },
+        data: { status: "EXTRACTED" },
+      });
+    } catch {
+      // WHY: if even the rollback fails (DB down), still surface the error
+    }
     return {
       error: `فشل التحليل: ${err instanceof Error ? err.message : "خطأ غير معروف"}`,
     };
